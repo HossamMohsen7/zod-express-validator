@@ -1,0 +1,28 @@
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "outDir": "dist",
+    "allowJs": true,
+    "moduleResolution": "Node16",
+    "module": "Node16",
+    "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "sourceMap": true,
+    "inlineSources": true,
+    "sourceRoot": "/",
+    "declaration": true,
+  },
+  "include": [
+    "src/**/*.ts",
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+    "files": true
+  }
+}
