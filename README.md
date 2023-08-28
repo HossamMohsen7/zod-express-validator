@@ -74,6 +74,57 @@ app.post(
 
 Note: You can skip any of the schemas if you don't want to validate it.
 
+### Usage with Controllers
+
+```typescript
+const app = express();
+
+const bodySchema = z.object({
+  name: z.string().min(3).max(255),
+});
+
+const paramsSchema = z.object({
+  userId: z.string().min(3).max(255),
+});
+
+const querySchema = z.object({
+  page: z.number().min(1).max(100),
+});
+
+const responseSchema = z.object({
+  success: z.boolean(),
+});
+
+const validator = validate(
+  {
+    body: bodySchema,
+    params: paramsSchema,
+    query: querySchema,
+    res: responseSchema,
+  },
+  ({ bodyError, paramsError, queryError }, res) => {
+    //This will be called if there is a validation error in the request.
+    //Get the first non-null error
+    const error = bodyError ?? paramsError ?? queryError;
+    return res.status(400).json({ error: error?.message });
+  }
+);
+
+type ValidatorType = typeof validator;
+
+const controller: ValidatorType = (req, res) => {
+  // Do something
+  const body = req.body; //body is now typed
+  const params = req.params; //params is now typed
+  const query = req.query; //query is now typeds
+
+  //Because we have a response schema, we will have type checking for the response
+  return res.status(200).json({ success: true });
+};
+
+app.post("/info/:userId", validator, controller);
+```
+
 ## Typescript Support
 
 This package fully supports Typescript, and will infer the types of your request and response payloads.
