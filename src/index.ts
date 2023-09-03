@@ -33,7 +33,7 @@ export declare type ValidationError<TParams, TQuery, TBody> = {
  * @param onZodErrors - A function that will be called when there is any error in the validation. Check {@link ValidationError}
  */
 export const validate =
-  <P, Q, B, R>(
+  <P, Q extends PropertyDescriptor & ThisType<any>, B, R>(
     schemas: Schemas<P, Q, B, R>,
     onZodErrors: (errors: ValidationError<P, Q, B>, res: Response) => Response
   ): RequestHandler<P, R, B, Q> =>
@@ -50,7 +50,15 @@ export const validate =
     if (schemas.query) {
       const result = schemas.query.safeParse(req.query);
       if (result.success) {
-        req.query = result.data;
+        const descriptior = Object.getOwnPropertyDescriptor(req, "query") || {};
+        if (descriptior.writable) {
+          req.query = result.data;
+        } else {
+          Object.defineProperty(req, "query", {
+            ...descriptior,
+            value: result.data,
+          });
+        }
       } else {
         error.queryError = result.error;
       }
