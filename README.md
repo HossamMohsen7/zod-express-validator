@@ -33,11 +33,11 @@ const bodySchema = z.object({
 });
 
 const paramsSchema = z.object({
-  userId: z.string().min(3).max(255),
+  userId: z.coerce.number(),
 });
 
 const querySchema = z.object({
-  page: z.number().min(1).max(100),
+  page: z.coerce.number().min(1).max(100),
 });
 
 const responseSchema = z.object({
@@ -72,7 +72,8 @@ app.post(
 );
 ```
 
-Note: You can skip any of the schemas if you don't want to validate it.
+Note: You can skip any of the schemas if you don't want to validate it.  
+**Important Note: For validation of `params` and `query` your must always use `z.coerce` to convert the values to the correct type**
 
 ### Usage with Controllers
 
@@ -84,11 +85,11 @@ const bodySchema = z.object({
 });
 
 const paramsSchema = z.object({
-  userId: z.string().min(3).max(255),
+  userId: z.coerce.string().min(3).max(255),
 });
 
 const querySchema = z.object({
-  page: z.number().min(1).max(100),
+  page: z.coerce.number().min(1).max(100),
 });
 
 const responseSchema = z.object({
