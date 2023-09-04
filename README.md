@@ -126,6 +126,11 @@ const controller: ValidatorType = (req, res) => {
 app.post("/info/:userId", validator, controller);
 ```
 
+### Error Handling
+
+If there is a validation error in the request, the error handler will be called with an object containing the errors for each of the request parts.  
+If you don't specify an error handler, the default error handler will be used, which will throw a `RequestValidationError` that contains the property `errors` with the validation error.
+
 ## Typescript Support
 
 This package fully supports Typescript, and will infer the types of your request and response payloads.

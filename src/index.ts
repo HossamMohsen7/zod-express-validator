@@ -9,10 +9,10 @@ import z from "zod";
  * @property res - The schema that will be used to validate the response.
  */
 export declare type Schemas<TParams, TQuery, TBody, TRes> = {
-  params?: z.ZodSchema<TParams>;
-  query?: z.ZodSchema<TQuery>;
-  body?: z.ZodSchema<TBody>;
-  res?: z.ZodSchema<TRes>;
+  params?: z.ZodSchema<TParams> | z.ZodEffects<any, TParams>;
+  query?: z.ZodSchema<TQuery> | z.ZodEffects<any, TQuery>;
+  body?: z.ZodSchema<TBody> | z.ZodEffects<any, TBody>;
+  res?: z.ZodSchema<TRes> | z.ZodEffects<any, TRes>;
 };
 
 /**
@@ -27,6 +27,12 @@ export declare type ValidationError<TParams, TQuery, TBody> = {
   bodyError?: z.ZodError<TBody>;
 };
 
+export class RequestValidationError<TParams, TQuery, TBody> extends Error {
+  constructor(public errors: ValidationError<TParams, TQuery, TBody>) {
+    super("Request validation error");
+  }
+}
+
 /**
  * Middleware that validates the params, query and body of the request. If there is any error, the onZodErrors function will be called.
  * @param schemas - The schemas that will be used in the validation. Check {@link Schemas}
@@ -35,7 +41,7 @@ export declare type ValidationError<TParams, TQuery, TBody> = {
 export const validate =
   <P, Q extends PropertyDescriptor & ThisType<any>, B, R>(
     schemas: Schemas<P, Q, B, R>,
-    onZodErrors: (errors: ValidationError<P, Q, B>, res: Response) => Response
+    onZodErrors?: (errors: ValidationError<P, Q, B>, res: Response) => Response
   ): RequestHandler<P, R, B, Q> =>
   (req, res, next) => {
     const error: ValidationError<P, Q, B> = {};
@@ -73,7 +79,11 @@ export const validate =
     }
     //If there is any error
     if (error.paramsError || error.queryError || error.bodyError) {
-      onZodErrors(error, res);
+      if (onZodErrors) {
+        onZodErrors(error, res);
+      } else {
+        next(new RequestValidationError(error));
+      }
     } else {
       next();
     }

@@ -21,12 +21,32 @@ const responseSchema = z.object({
   success: z.boolean(),
 });
 
+export const zodEffects = z
+  .object({ jsonString: z.string() })
+  .refine(
+    (incomingData) => {
+      try {
+        return JSON.parse(incomingData.jsonString);
+      } catch (error) {
+        return false;
+      }
+    },
+    {
+      message: ".jsonString should be a valid JSON string.",
+    }
+  )
+  .transform((incomingData) => {
+    return z
+      .object({ bodyKey: z.number() })
+      .parse(JSON.parse(incomingData.jsonString));
+  });
+
 const registerEndpoints = () => {
   app.post(
     "/info/:userId",
     validate(
       {
-        body: bodySchema,
+        body: zodEffects,
         params: paramsSchema,
         query: querySchema,
         res: responseSchema,
@@ -35,7 +55,7 @@ const registerEndpoints = () => {
         //This will be called if there is a validation error in the request.
         //Get the first non-null error
         const error = bodyError ?? paramsError ?? queryError;
-        return res.status(400).json({ error: error });
+        return res.status(400).json({ error: error?.message });
       }
     ),
     (req, res) => {
