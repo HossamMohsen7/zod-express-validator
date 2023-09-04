@@ -41,7 +41,10 @@ export class RequestValidationError<TParams, TQuery, TBody> extends Error {
 export const validate =
   <P, Q extends PropertyDescriptor & ThisType<any>, B, R>(
     schemas: Schemas<P, Q, B, R>,
-    onZodErrors?: (errors: ValidationError<P, Q, B>, res: Response) => Response
+    onZodErrors?: (
+      errors: ValidationError<P, Q, B>,
+      res: Response
+    ) => Response | never
   ): RequestHandler<P, R, B, Q> =>
   (req, res, next) => {
     const error: ValidationError<P, Q, B> = {};
