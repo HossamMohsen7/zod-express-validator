@@ -1,6 +1,6 @@
 {
   "name": "zod-express-validator",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A package to validate Express request and response payloads using Zod.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
