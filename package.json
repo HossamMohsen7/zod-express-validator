@@ -1,6 +1,6 @@
 {
   "name": "zod-express-validator",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A package to validate Express request and response payloads using Zod.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,15 +26,15 @@
   },
   "homepage": "https://github.com/HossamMohsen7/zod-express-validator#readme",
   "peerDependencies": {
-    "@types/express": "^4.17.17",
-    "zod": "^3.22.2"
+    "zod": "^3.22.2",
+    "express": "5.1.0"
   },
   "devDependencies": {
-    "express": "5.0.0-beta.1",
-    "@tsconfig/node18": "^18.2.1",
-    "@types/node": "^20.5.6",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "@tsconfig/node22": "^22.0.2",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.4",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   },
   "files": [
     "dist/**/*"
