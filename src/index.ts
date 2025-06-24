@@ -1,5 +1,6 @@
-import { RequestHandler, Response } from "express";
 import z from "zod";
+import express from "express";
+import type { Request, RequestHandler, Response } from 'express';
 
 /**
  * A type that represents the schemas that will be used in the validation.
@@ -33,6 +34,21 @@ export class RequestValidationError<TParams, TQuery, TBody> extends Error {
   }
 }
 
+const descriptor = Object.getOwnPropertyDescriptor(express.request, 'query');
+if (descriptor) {
+	Object.defineProperty(express.request, 'query', {
+		get(this: Request) {
+			if (this._query) return this._query;
+			return descriptor?.get?.call(this);
+		},
+		set(this: Request, query: unknown) {
+			this._query = query;
+		},
+		configurable: true,
+		enumerable: true
+	});
+}
+
 /**
  * Middleware that validates the params, query and body of the request. If there is any error, the onZodErrors function will be called.
  * @param schemas - The schemas that will be used in the validation. Check {@link Schemas}
@@ -59,15 +75,7 @@ export const validate =
     if (schemas.query) {
       const result = schemas.query.safeParse(req.query);
       if (result.success) {
-        const descriptior = Object.getOwnPropertyDescriptor(req, "query") || {};
-        if (descriptior.writable) {
           req.query = result.data;
-        } else {
-          Object.defineProperty(req, "query", {
-            ...descriptior,
-            value: result.data,
-          });
-        }
       } else {
         error.queryError = result.error;
       }

@@ -65,7 +65,7 @@ const registerEndpoints = () => {
       const query = req.query; //query is now typeds
 
       //Because we have a response schema, we will have type checking for the response
-      return res.status(200).json({ success: true });
+      res.status(200).json({ success: true });
     }
   );
 };
