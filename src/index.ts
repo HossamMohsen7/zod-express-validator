@@ -10,10 +10,10 @@ import type { Request, RequestHandler, Response } from 'express';
  * @property res - The schema that will be used to validate the response.
  */
 export declare type Schemas<TParams, TQuery, TBody, TRes> = {
-  params?: z.ZodSchema<TParams> | z.ZodEffects<any, TParams>;
-  query?: z.ZodSchema<TQuery> | z.ZodEffects<any, TQuery>;
-  body?: z.ZodSchema<TBody> | z.ZodEffects<any, TBody>;
-  res?: z.ZodSchema<TRes> | z.ZodEffects<any, TRes>;
+  params?: z.ZodSchema<TParams>;
+  query?: z.ZodSchema<TQuery>;
+  body?: z.ZodSchema<TBody>;
+  res?: z.ZodSchema<TRes>;
 };
 
 /**
