@@ -4,29 +4,36 @@ A package to validate [Express](https://www.npmjs.com/package/express) request a
 
 Inspired by [zod-express-middleware](https://www.npmjs.com/package/zod-express-middleware)
 
-## Prerequisites
+## Requirements
 
-This package requires your project to have [Express](https://www.npmjs.com/package/express) and [Zod](https://www.npmjs.com/package/zod) installed.  
-To add this package to your project you can use one of the following commands:
+| Peer dependency | Version  |
+| --------------- | -------- |
+| `express`       | `^5.0.0` |
+| `zod`           | `^4.0.0` |
+
+## Installation
 
 ```bash
 npm install zod-express-validator
+# or
 yarn add zod-express-validator
+# or
 pnpm add zod-express-validator
 ```
 
 ## Usage
 
-This package has a single function that you use as an Express middleware in your handlers, you need to import it as the following:
+### Basic
+
+Pass `validate(schemas, onError?)` as a middleware. The next handler receives a fully typed `req` — no casts needed.
 
 ```typescript
+import express from "express";
+import z from "zod";
 import { validate } from "zod-express-validator";
-```
 
-Then, in your handler you can use it as the following:
-
-```typescript
 const app = express();
+app.use(express.json());
 
 const bodySchema = z.object({
   name: z.string().min(3).max(255),
@@ -54,38 +61,44 @@ app.post(
       res: responseSchema,
     },
     ({ bodyError, paramsError, queryError }, res) => {
-      //This will be called if there is a validation error in the request.
-      //Get the first non-null error
       const error = bodyError ?? paramsError ?? queryError;
       return res.status(400).json({ error: error?.message });
-    }
+    },
   ),
   (req, res) => {
-    // Do something
-    const body = req.body; //body is now typed
-    const params = req.params; //params is now typed
-    const query = req.query; //query is now typeds
+    const body = req.body;   // { name: string }
+    const params = req.params; // { userId: number }
+    const query = req.query;  // { page: number }
 
-    //Because we have a response schema, we will have type checking for the response
+    // res.json is type-checked against responseSchema
     return res.status(200).json({ success: true });
-  }
+  },
 );
 ```
 
-Note: You can skip any of the schemas if you don't want to validate it.  
-**Important Note: For validation of `params` and `query` your must always use `z.coerce` to convert the values to the correct type**
+> **Note:** Any schema can be omitted if you don't need to validate that part of the request.  
+> **Important:** For `params` and `query`, always use `z.coerce` — these values arrive as strings from the URL.
+
+---
 
 ### Usage with Controllers
 
+Extract the validator to a variable and derive the controller type from it using `TypedRequestHandler`. This keeps schemas, middleware, and controller all in sync from a single declaration.
+
 ```typescript
+import express from "express";
+import z from "zod";
+import { validate, TypedRequestHandler } from "zod-express-validator";
+
 const app = express();
+app.use(express.json());
 
 const bodySchema = z.object({
   name: z.string().min(3).max(255),
 });
 
 const paramsSchema = z.object({
-  userId: z.coerce.string().min(3).max(255),
+  userId: z.coerce.number(),
 });
 
 const querySchema = z.object({
@@ -104,40 +117,72 @@ const validator = validate(
     res: responseSchema,
   },
   ({ bodyError, paramsError, queryError }, res) => {
-    //This will be called if there is a validation error in the request.
-    //Get the first non-null error
     const error = bodyError ?? paramsError ?? queryError;
     return res.status(400).json({ error: error?.message });
-  }
+  },
 );
 
-type ValidatorType = typeof validator;
+const controller: TypedRequestHandler<typeof validator> = (req, res) => {
+  const body = req.body;    // { name: string }
+  const params = req.params;  // { userId: number }
+  const query = req.query;   // { page: number }
 
-const controller: ValidatorType = (req, res) => {
-  // Do something
-  const body = req.body; //body is now typed
-  const params = req.params; //params is now typed
-  const query = req.query; //query is now typeds
-
-  //Because we have a response schema, we will have type checking for the response
   return res.status(200).json({ success: true });
 };
 
 app.post("/info/:userId", validator, controller);
 ```
 
+---
+
 ### Error Handling
 
-If there is a validation error in the request, the error handler will be called with an object containing the errors for each of the request parts.  
-If you don't specify an error handler, the default error handler will be used, which will throw a `RequestValidationError` that contains the property `errors` with the validation error.
+If validation fails, the `onZodErrors` callback is called with a [`ValidationError`](#api) containing the errors for each part of the request.
 
-## Typescript Support
+If no callback is provided, a `RequestValidationError` is forwarded to `next()` for Express's error-handling middleware to process:
 
-This package fully supports Typescript, and will infer the types of your request and response payloads.
+```typescript
+app.use((err, req, res, next) => {
+  if (err instanceof RequestValidationError) {
+    const { paramsError, queryError, bodyError } = err.errors;
+    return res.status(400).json({ paramsError, queryError, bodyError });
+  }
+  next(err);
+});
+```
+
+---
+
+## API
+
+### `validate(schemas, onZodErrors?)`
+
+Returns a `Validator<T>` middleware that validates the request before passing control to the next handler.
+
+| Parameter     | Type                                                        | Description                                                                                  |
+| ------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `schemas`     | `Schemas`                                                   | Zod schemas for `params`, `query`, `body`, and/or `res`.                                     |
+| `onZodErrors` | `(errors: ValidationError, res: Response) => Response \| never` | Optional. Called on validation failure. Omit to forward a `RequestValidationError` to `next`. |
+
+---
+
+### Types
+
+| Type                        | Description                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| `Schemas`                   | Shape of the object passed to `validate()`. All fields are optional.                               |
+| `Validator<T>`              | Return type of `validate()`. Extends `RequestHandler` and carries the schema type for inference.   |
+| `TypedRequestHandler<T>`    | Type for a controller derived from a `Validator<T>` or a `Schemas` object.                         |
+| `TypedRequest<T>`           | A typed `Request` with `params`, `body`, and `query` replaced by their Zod-inferred types.         |
+| `InferSchemas<T>`           | Utility type that extracts the inferred `params` / `query` / `body` / `res` types from a `Schemas`. |
+| `ValidationError`           | Object containing `paramsError?`, `queryError?`, `bodyError?` as `ZodError` instances.             |
+| `RequestValidationError`    | Error subclass forwarded to `next()` when no `onZodErrors` is provided. Contains `.errors`.        |
+
+---
 
 ## Versioning
 
-This package uses [SemVer](https://semver.org/) for versioning.
+This package uses [SemVer](https://semver.org/) for versioning. See [CHANGELOG.md](./CHANGELOG.md) and [BREAKING_CHANGES.md](./BREAKING_CHANGES.md) for version history.
 
 ## Contributing & Issues
 
